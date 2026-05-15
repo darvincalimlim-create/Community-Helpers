@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Community Helpers Match Game</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Arial Rounded MT Bold', Arial, sans-serif;
+    background: #2c3e50;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+/* MAP */
+#map-container {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #2c3e50;
+    padding: 8px;
+}
+
+#map-area {
+    position: relative;
+    width: min(100%, calc((100vh - 318px) * 2.0426));
+    aspect-ratio: 1536 / 752;
+    background: url('community-map-wide.png') no-repeat center center;
+    background-size: 100% 100%;
+}
+
+/* Invisible drop zones */
+.drop-zone {
+    position: absolute;
+    border-radius: 18px;
+}
+
+/* Correct zone glows BEFORE drop */
+.drop-zone.glow {
+    outline: 7px solid rgba(255, 215, 0, 0.98);
+    background: rgba(255, 255, 255, 0.23);
+    box-shadow: 0 0 28px rgba(255, 215, 0, 0.98);
+}
+
+/* Tray */
+#people-tray {
+    height: 300px;
+    background: #f5f5f5;
+    display: flex;
+    overflow-x: auto;
+    align-items: center;
+    gap: 36px;
+    padding: 18px 45px;
+    border-top: 10px solid #f1c40f;
+    z-index: 50;
+}
+
+.person {
+    flex: 0 0 auto;
+    width: 250px;
+    text-align: center;
+    cursor: grab;
+    user-select: none;
+    touch-action: none;
+}
+
+.person img {
+    width: 215px;
+    height: 215px;
+    object-fit: contain;
+    filter: drop-shadow(0 8px 10px rgba(0,0,0,0.35));
+    pointer-events: none;
+}
+
+.person b {
+    display: block;
+    margin-top: 6px;
+    background: #eeeeee;
+    padding: 6px 8px;
+    border-radius: 12px;
+    font-size: 19px;
+    color: #222;
+}
+
+/* Characters after snapping on the map */
+.placed-person {
+    position: absolute !important;
+    width: 132px !important;
+    z-index: 20 !important;
+    cursor: default !important;
+    pointer-events: none !important;
+    animation: snapPop 0.35s ease-out;
+}
+
+.placed-person img {
+    width: 118px !important;
+    height: 118px !important;
+}
+
+.placed-person b {
+    font-size: 12px;
+    padding: 3px 5px;
+}
+
+@keyframes snapPop {
+    0% { transform: translate(-50%, -50%) scale(0.65); }
+    65% { transform: translate(-50%, -50%) scale(1.12); }
+    100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+.returning {
+    animation: returnPop 0.25s ease-out;
+}
+
+@keyframes returnPop {
+    0% { transform: scale(1.08); opacity: 0.65; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+#reset-btn {
+    position: fixed;
+    right: 18px;
+    top: 18px;
+    padding: 12px 24px;
+    font-size: 20px;
+    background: gold;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    z-index: 4000;
+    font-weight: bold;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+}
+
+#message {
+    position: fixed;
+    top: 8%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 64px;
+    color: gold;
+    font-weight: bold;
+    z-index: 4000;
+    text-shadow: 0 4px 8px rgba(0,0,0,0.55);
+    pointer-events: none;
+}
+
+.character-confetti {
+    position: fixed;
+    top: -140px;
+    width: 110px;
+    z-index: 5000;
+    pointer-events: none;
+    animation-name: characterFall;
+    animation-timing-function: linear;
+    animation-fill-mode: forwards;
+}
+
+@keyframes characterFall {
+    0% {
+        transform: translateY(-160px) rotate(0deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(115vh) rotate(720deg);
+        opacity: 1;
+    }
+}
+
+#ending-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: black;
+    color: white;
+    z-index: 7000;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 30px;
+}
+
+#ending-card h1 {
+    font-size: 68px;
+    margin: 0 0 18px;
+    color: gold;
+}
+
+#ending-card p {
+    font-size: 34px;
+    font-weight: bold;
+    margin: 12px 0 28px;
+}
+
+#play-again-btn {
+    background: gold;
+    color: #111;
+    border: none;
+    border-radius: 18px;
+    padding: 18px 36px;
+    font-size: 30px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+@media (max-width: 900px) {
+    #people-tray {
+        height: 260px;
+        gap: 28px;
+        padding: 14px 30px;
+    }
+
+    #map-area {
+        width: min(100%, calc((100vh - 278px) * 2.0426));
+    }
+
+    .person {
+        width: 220px;
+    }
+
+    .person img {
+        width: 185px;
+        height: 185px;
+    }
+
+    .placed-person {
+        width: 112px !important;
+    }
+
+    .placed-person img {
+        width: 100px !important;
+        height: 100px !important;
+    }
+
+    #message {
+        font-size: 46px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<button id="reset-btn">Reset</button>
+
+<div id="map-container">
+    <div id="map-area">
+
+        <!-- These zones are calibrated to community-map-wide.png. -->
+        <div class="drop-zone" id="school" style="left:5.8%; top:6.8%; width:21.4%; height:30.0%;"></div>
+        <div class="drop-zone" id="supermarket" style="left:30.2%; top:8.8%; width:19.2%; height:28.0%;"></div>
+        <div class="drop-zone" id="library" style="left:52.0%; top:7.0%; width:21.4%; height:30.0%;"></div>
+        <div class="drop-zone" id="church" style="left:76.2%; top:4.0%; width:21.8%; height:33.0%;"></div>
+
+        <div class="drop-zone" id="park" style="left:0.0%; top:40.2%; width:27.8%; height:30.0%;"></div>
+        <div class="drop-zone" id="hospital" style="left:30.2%; top:40.5%; width:18.0%; height:30.0%;"></div>
+        <div class="drop-zone" id="vet-clinic" style="left:50.6%; top:40.5%; width:13.0%; height:30.0%;"></div>
+        <div class="drop-zone" id="dentist-clinic" style="left:64.2%; top:40.5%; width:12.2%; height:30.0%;"></div>
+        <div class="drop-zone" id="fire-station" style="left:78.0%; top:40.0%; width:21.4%; height:31.0%;"></div>
+
+        <div class="drop-zone" id="police-station" style="left:3.5%; top:75.0%; width:18.8%; height:23.0%;"></div>
+        <div class="drop-zone" id="post-office" style="left:24.6%; top:74.0%; width:18.4%; height:24.0%;"></div>
+        <div class="drop-zone" id="tea-shop" style="left:44.8%; top:74.0%; width:15.2%; height:24.0%;"></div>
+        <div class="drop-zone" id="restaurant" style="left:61.7%; top:74.0%; width:15.8%; height:24.0%;"></div>
+        <div class="drop-zone" id="bank" style="left:79.2%; top:74.0%; width:19.8%; height:24.0%;"></div>
+
+    </div>
+</div>
+
+<div id="people-tray">
+    <div class="person" data-targets="school" data-name="Teacher" data-img="teacher.png"><img src="teacher.png" alt="Teacher"><b>Teacher</b></div>
+    <div class="person" data-targets="library" data-name="Librarian" data-img="librarian.png"><img src="librarian.png" alt="Librarian"><b>Librarian</b></div>
+    <div class="person" data-targets="post-office" data-name="Mail Carrier" data-img="mailman.png"><img src="mailman.png" alt="Mail Carrier"><b>Mail Carrier</b></div>
+    <div class="person" data-targets="restaurant" data-name="Chef" data-img="chef.png"><img src="chef.png" alt="Chef"><b>Chef</b></div>
+    <div class="person" data-targets="restaurant" data-name="Waiter" data-img="waiter.png"><img src="waiter.png" alt="Waiter"><b>Waiter</b></div>
+    <div class="person" data-targets="hospital" data-name="Doctor" data-img="doctor.png"><img src="doctor.png" alt="Doctor"><b>Doctor</b></div>
+    <div class="person" data-targets="hospital" data-name="Nurse" data-img="nurse.png"><img src="nurse.png" alt="Nurse"><b>Nurse</b></div>
+    <div class="person" data-targets="vet-clinic" data-name="Vet" data-img="vet.png"><img src="vet.png" alt="Vet"><b>Vet</b></div>
+    <div class="person" data-targets="dentist-clinic" data-name="Dentist" data-img="dentist.png"><img src="dentist.png" alt="Dentist"><b>Dentist</b></div>
+    <div class="person" data-targets="fire-station" data-name="Firefighter" data-img="fireman.png"><img src="fireman.png" alt="Firefighter"><b>Firefighter</b></div>
+    <div class="person" data-targets="police-station" data-name="Police Officer" data-img="police.png"><img src="police.png" alt="Police Officer"><b>Police</b></div>
+    <div class="person" data-targets="supermarket,tea-shop" data-name="Clerk" data-img="clerk.png"><img src="clerk.png" alt="Clerk"><b>Clerk</b></div>
+</div>
+
+<div id="message"></div>
+
+<div id="ending-screen">
+    <div id="ending-card">
+        <h1>🎉 Congratulations! 🎉</h1>
+        <p>You matched all community helpers!</p>
+        <button id="play-again-btn" onclick="playAgain()">Play Again</button>
+    </div>
+</div>
+
+<script>
+const tray = document.getElementById('people-tray');
+const mapArea = document.getElementById('map-area');
+const people = Array.from(document.querySelectorAll('.person'));
+const allCharacterImages = people.map(p => p.dataset.img);
+
+let draggingPerson = null;
+let offsetX = 0;
+let offsetY = 0;
+let matchedCount = 0;
+let finalStarted = false;
+
+people.forEach(person => {
+    person.addEventListener('pointerdown', startDrag);
+});
+
+function startDrag(e) {
+    if (finalStarted) return;
+    if (e.currentTarget.classList.contains('placed-person')) return;
+
+    draggingPerson = e.currentTarget;
+
+    const rect = draggingPerson.getBoundingClientRect();
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+
+    document.body.appendChild(draggingPerson);
+
+    draggingPerson.style.position = 'fixed';
+    draggingPerson.style.left = rect.left + 'px';
+    draggingPerson.style.top = rect.top + 'px';
+    draggingPerson.style.zIndex = '3000';
+    draggingPerson.style.transform = 'none';
+    draggingPerson.style.width = '250px';
+
+    document.addEventListener('pointermove', moveDrag);
+    document.addEventListener('pointerup', endDrag);
+    document.addEventListener('pointercancel', cancelDrag);
+}
+
+function moveDrag(e) {
+    if (!draggingPerson) return;
+
+    draggingPerson.style.left = (e.clientX - offsetX) + 'px';
+    draggingPerson.style.top = (e.clientY - offsetY) + 'px';
+
+    const center = getPersonCenter(draggingPerson);
+    glowCorrectZone(center.x, center.y, draggingPerson);
+}
+
+function endDrag() {
+    if (!draggingPerson) return;
+
+    const person = draggingPerson;
+    const center = getPersonCenter(person);
+    const matchedZone = getMatchingZone(center.x, center.y, person);
+
+    cleanupDragListeners();
+    clearGlow();
+
+    if (matchedZone) {
+        snapToZone(person, matchedZone);
+        showMessage("👏 Correct!");
+        speakJob(person.dataset.name);
+        playClap();
+        matchedCount++;
+
+        if (matchedCount >= people.length) {
+            setTimeout(startFinalCelebration, 700);
+        }
+    } else {
+        returnToTray(person);
+        showMessage("Try again!");
+    }
+
+    draggingPerson = null;
+}
+
+function cancelDrag() {
+    if (!draggingPerson) return;
+
+    const person = draggingPerson;
+    cleanupDragListeners();
+    clearGlow();
+    returnToTray(person);
+    showMessage("Try again!");
+    draggingPerson = null;
+}
+
+function cleanupDragListeners() {
+    document.removeEventListener('pointermove', moveDrag);
+    document.removeEventListener('pointerup', endDrag);
+    document.removeEventListener('pointercancel', cancelDrag);
+}
+
+function getPersonCenter(person) {
+    const rect = person.getBoundingClientRect();
+    return {
+        x: rect.left + rect.width / 2,
+        y: rect.top + rect.height / 2
+    };
+}
+
+function getMatchingZone(x, y, person) {
+    const targets = person.dataset.targets.split(',').map(t => t.trim());
+
+    for (const id of targets) {
+        const zone = document.getElementById(id);
+        if (!zone) continue;
+
+        const rect = zone.getBoundingClientRect();
+
+        if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+            return zone;
+        }
+    }
+
+    return null;
+}
+
+function glowCorrectZone(x, y, person) {
+    clearGlow();
+
+    const targets = person.dataset.targets.split(',').map(t => t.trim());
+
+    for (const id of targets) {
+        const zone = document.getElementById(id);
+        if (!zone) continue;
+
+        const rect = zone.getBoundingClientRect();
+
+        if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+            zone.classList.add('glow');
+            return;
+        }
+    }
+}
+
+function clearGlow() {
+    document.querySelectorAll('.drop-zone').forEach(zone => zone.classList.remove('glow'));
+}
+
+function snapToZone(person, zone) {
+    const zoneCenter = getZoneSnapPoint(zone);
+    mapArea.appendChild(person);
+
+    person.classList.add('placed-person');
+    person.style.position = 'absolute';
+    person.style.left = zoneCenter.x + 'px';
+    person.style.top = zoneCenter.y + 'px';
+    person.style.zIndex = '20';
+    person.style.transform = 'translate(-50%, -50%)';
+    person.style.width = '';
+    person.style.pointerEvents = 'none';
+
+    spreadSameZone(zone);
+}
+
+function getZoneSnapPoint(zone) {
+    const mapRect = mapArea.getBoundingClientRect();
+    const zoneRect = zone.getBoundingClientRect();
+
+    return {
+        x: zoneRect.left - mapRect.left + zoneRect.width / 2,
+        y: zoneRect.top - mapRect.top + zoneRect.height / 2
+    };
+}
+
+function spreadSameZone(zone) {
+    const center = getZoneSnapPoint(zone);
+
+    const zoneTargets = Array.from(mapArea.querySelectorAll('.placed-person')).filter(p => {
+        const pTargets = p.dataset.targets.split(',').map(t => t.trim());
+        return pTargets.includes(zone.id) &&
+               Math.abs(parseFloat(p.style.top) - center.y) < 20;
+    });
+
+    if (zoneTargets.length > 1) {
+        zoneTargets.forEach((p, index) => {
+            const shift = (index - (zoneTargets.length - 1) / 2) * 58;
+            p.style.left = (center.x + shift) + 'px';
+            p.style.top = center.y + 'px';
+        });
+    }
+}
+
+function returnToTray(person) {
+    tray.appendChild(person);
+    resetPersonStyle(person);
+
+    person.classList.add('returning');
+    setTimeout(() => person.classList.remove('returning'), 260);
+}
+
+function resetPersonStyle(person) {
+    person.classList.remove('placed-person');
+    person.style.position = '';
+    person.style.left = '';
+    person.style.top = '';
+    person.style.zIndex = '';
+    person.style.transform = '';
+    person.style.width = '';
+    person.style.pointerEvents = '';
+}
+
+function showMessage(text) {
+    const message = document.getElementById('message');
+    message.innerText = text;
+
+    setTimeout(() => {
+        message.innerText = "";
+    }, 900);
+}
+
+function speakJob(jobName) {
+    try {
+        speechSynthesis.cancel();
+        const msg = new SpeechSynthesisUtterance(jobName);
+        msg.rate = 0.9;
+        msg.pitch = 1.15;
+        speechSynthesis.speak(msg);
+    } catch (e) {}
+}
+
+function playClap() {
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioContext();
+
+        for (let i = 0; i < 3; i++) {
+            const bufferSize = ctx.sampleRate * 0.08;
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+
+            for (let j = 0; j < bufferSize; j++) {
+                data[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / bufferSize, 3);
+            }
+
+            const noise = ctx.createBufferSource();
+            noise.buffer = buffer;
+
+            const filter = ctx.createBiquadFilter();
+            filter.type = "bandpass";
+            filter.frequency.value = 1200 + i * 350;
+
+            const gain = ctx.createGain();
+            const start = ctx.currentTime + i * 0.08;
+
+            gain.gain.setValueAtTime(0.0001, start);
+            gain.gain.exponentialRampToValueAtTime(0.45, start + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.075);
+
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(ctx.destination);
+
+            noise.start(start);
+            noise.stop(start + 0.08);
+        }
+    } catch (e) {}
+}
+
+function startFinalCelebration() {
+    if (finalStarted) return;
+    finalStarted = true;
+
+    showMessage("🎉 Great Job! 🎉");
+    playClap();
+    startCharacterRain();
+
+    setTimeout(() => {
+        document.getElementById('ending-screen').style.display = 'flex';
+    }, 4300);
+}
+
+function startCharacterRain() {
+    for (let i = 0; i < 140; i++) {
+        setTimeout(() => {
+            const img = document.createElement('img');
+            img.src = allCharacterImages[Math.floor(Math.random() * allCharacterImages.length)];
+            img.className = 'character-confetti';
+            img.style.left = Math.random() * 100 + 'vw';
+            img.style.width = (80 + Math.random() * 95) + 'px';
+            img.style.animationDuration = (2.4 + Math.random() * 2.3) + 's';
+            document.body.appendChild(img);
+
+            setTimeout(() => img.remove(), 6500);
+        }, i * 30);
+    }
+}
+
+function resetGame() {
+    matchedCount = 0;
+    finalStarted = false;
+    draggingPerson = null;
+
+    document.getElementById('ending-screen').style.display = 'none';
+    document.getElementById('message').innerText = '';
+
+    clearGlow();
+    document.querySelectorAll('.character-confetti').forEach(el => el.remove());
+
+    people.forEach(person => {
+        tray.appendChild(person);
+        resetPersonStyle(person);
+    });
+}
+
+function playAgain() {
+    resetGame();
+}
+
+document.getElementById('reset-btn').addEventListener('click', resetGame);
+</script>
+
+</body>
+</html>
